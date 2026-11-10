@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BJT DC Bias Calculator — Voltage Divider</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="page">
+    <header class="head">
+      <p class="eyebrow">ENG29 2121 · Lab 02</p>
+      <h1>BJT DC Bias Calculator</h1>
+      <p class="sub">วงจร Common-Emitter แบบ Voltage-Divider Bias · Forward-Active Approximation</p>
+    </header>
+
+    {% if error %}
+    <div class="error" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form class="card" method="post" action="/calculate">
+      <div class="grid">
+        <label>VCC (V)
+          <input type="text" inputmode="decimal" name="vcc" value="{{ values.get('vcc', '') }}" placeholder="เช่น 12">
+        </label>
+        <label>R1 (Ω) — ต่อ VCC ถึง Base
+          <input type="text" inputmode="decimal" name="r1" value="{{ values.get('r1', '') }}" placeholder="เช่น 100000">
+        </label>
+        <label>R2 (Ω) — ต่อ Base ถึง Ground
+          <input type="text" inputmode="decimal" name="r2" value="{{ values.get('r2', '') }}" placeholder="เช่น 22000">
+        </label>
+        <label>RC (Ω) — ต่อ VCC ถึง Collector
+          <input type="text" inputmode="decimal" name="rc" value="{{ values.get('rc', '') }}" placeholder="เช่น 2200">
+        </label>
+        <label>RE (Ω) — ต่อ Emitter ถึง Ground
+          <input type="text" inputmode="decimal" name="re" value="{{ values.get('re', '') }}" placeholder="เช่น 1000">
+        </label>
+        <label>β (hFE)
+          <input type="text" inputmode="decimal" name="beta" value="{{ values.get('beta', '') }}" placeholder="เช่น 100">
+        </label>
+        <label>VBE (V)
+          <input type="text" inputmode="decimal" name="vbe" value="{{ values.get('vbe', '') }}" placeholder="เช่น 0.70">
+        </label>
+      </div>
+      <button type="submit">Calculate DC Bias</button>
+    </form>
+
+    {% if result %}
+    <section class="card results">
+      <div class="results-head">
+        <h2>DC Bias Results</h2>
+        <span class="badge region-{{ result.region }}">{{ result.region|capitalize }} Region</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>ปริมาณ</th><th>ค่า</th><th>หน่วย</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>VB</td><td>{{ display.vb }}</td><td>V</td></tr>
+            <tr><td>VE</td><td>{{ display.ve }}</td><td>V</td></tr>
+            <tr><td>VC</td><td>{{ display.vc }}</td><td>V</td></tr>
+            <tr><td>VCE</td><td>{{ display.vce }}</td><td>V</td></tr>
+            <tr><td>IC</td><td>{{ display.ic }}</td><td>mA</td></tr>
+            <tr><td>IB</td><td>{{ display.ib }}</td><td>µA</td></tr>
+            <tr><td>IE</td><td>{{ display.ie }}</td><td>mA</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="meta">
+        VTH = {{ display.vth }} V · RTH = {{ display.rth }} kΩ ·
+        แบบจำลอง Forward-Active (β, VBE คงที่)
+      </p>
+      {% if result.warnings %}
+      <div class="warn" role="status">
+        {% for warning in result.warnings %}
+        <p>{{ warning }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+  </main>
+</body>
+</html>
