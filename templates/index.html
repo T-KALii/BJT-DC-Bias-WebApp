@@ -3,44 +3,40 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BJT DC Bias Calculator — Voltage Divider</title>
+  <title>BJT DC Bias Calculator — {{ mode_label }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <main class="page">
     <header class="head">
-      <p class="eyebrow">ENG29 2121 · Lab 02</p>
+      <p class="eyebrow">ENG29 2121 · Lab 03</p>
       <h1>BJT DC Bias Calculator</h1>
-      <p class="sub">วงจร Common-Emitter แบบ Voltage-Divider Bias · Forward-Active Approximation</p>
+      <p class="sub">{{ mode_label }} · วงจร Common-Emitter · Forward-Active Approximation</p>
     </header>
+
+    <form class="mode-bar" method="get" action="/">
+      <label for="circuit">เลือกวงจร</label>
+      <select id="circuit" name="circuit">
+        <option value="divider" {% if circuit == 'divider' %}selected{% endif %}>Voltage Divider Bias</option>
+        <option value="fixed" {% if circuit == 'fixed' %}selected{% endif %}>Fixed Bias</option>
+        <option value="emitter" {% if circuit == 'emitter' %}selected{% endif %}>Emitter Bias</option>
+      </select>
+      <button type="submit">เปลี่ยนวงจร</button>
+    </form>
 
     {% if error %}
     <div class="error" role="alert">{{ error }}</div>
     {% endif %}
 
     <form class="card" method="post" action="/calculate">
+      <input type="hidden" name="circuit" value="{{ circuit }}">
+      <p class="form-hint">กรอกความต้านทานเป็น Ω และแรงดันเป็น V</p>
       <div class="grid">
-        <label>VCC (V)
-          <input type="text" inputmode="decimal" name="vcc" value="{{ values.get('vcc', '') }}" placeholder="เช่น 12">
+        {% for field in fields %}
+        <label>{{ field_info[field][0] }}
+          <input type="text" inputmode="decimal" name="{{ field }}" value="{{ values.get(field, '') }}" placeholder="{{ field_info[field][1] }}">
         </label>
-        <label>R1 (Ω) — ต่อ VCC ถึง Base
-          <input type="text" inputmode="decimal" name="r1" value="{{ values.get('r1', '') }}" placeholder="เช่น 100000">
-        </label>
-        <label>R2 (Ω) — ต่อ Base ถึง Ground
-          <input type="text" inputmode="decimal" name="r2" value="{{ values.get('r2', '') }}" placeholder="เช่น 22000">
-        </label>
-        <label>RC (Ω) — ต่อ VCC ถึง Collector
-          <input type="text" inputmode="decimal" name="rc" value="{{ values.get('rc', '') }}" placeholder="เช่น 2200">
-        </label>
-        <label>RE (Ω) — ต่อ Emitter ถึง Ground
-          <input type="text" inputmode="decimal" name="re" value="{{ values.get('re', '') }}" placeholder="เช่น 1000">
-        </label>
-        <label>β (hFE)
-          <input type="text" inputmode="decimal" name="beta" value="{{ values.get('beta', '') }}" placeholder="เช่น 100">
-        </label>
-        <label>VBE (V)
-          <input type="text" inputmode="decimal" name="vbe" value="{{ values.get('vbe', '') }}" placeholder="เช่น 0.70">
-        </label>
+        {% endfor %}
       </div>
       <button type="submit">Calculate DC Bias</button>
     </form>
@@ -48,7 +44,7 @@
     {% if result %}
     <section class="card results">
       <div class="results-head">
-        <h2>DC Bias Results</h2>
+        <h2>DC Bias Results — {{ mode_label }}</h2>
         <span class="badge region-{{ result.region }}">{{ result.region|capitalize }} Region</span>
       </div>
       <div class="table-scroll">
@@ -67,10 +63,16 @@
           </tbody>
         </table>
       </div>
+      {% if show_divider_meta %}
       <p class="meta">
         VTH = {{ display.vth }} V · RTH = {{ display.rth }} kΩ ·
         แบบจำลอง Forward-Active (β, VBE คงที่)
       </p>
+      {% else %}
+      <p class="meta">
+        {{ mode_label }} · หน่วย: V, mA, µA · แบบจำลอง Forward-Active (β, VBE คงที่)
+      </p>
+      {% endif %}
       {% if result.warnings %}
       <div class="warn" role="status">
         {% for warning in result.warnings %}
