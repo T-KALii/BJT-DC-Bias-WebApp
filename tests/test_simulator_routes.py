@@ -41,12 +41,45 @@ class SimulatorRouteTest(unittest.TestCase):
         text = self.client.get("/").get_data(as_text=True)
         self.assertIn("/simulator", text)
 
+    def test_root_shows_both_workspaces_on_one_page(self):
+        text = self.client.get("/").get_data(as_text=True)
+        self.assertIn('id="lab3"', text)
+        self.assertIn('id="lab4"', text)
+        self.assertIn('action="/calculate"', text)
+        self.assertIn('action="/simulator/run"', text)
+
+    def test_simulator_alias_shows_both_workspaces(self):
+        text = self.client.get("/simulator").get_data(as_text=True)
+        self.assertIn('id="lab3"', text)
+        self.assertIn('id="lab4"', text)
+        self.assertIn('id="run-status"', text)
+
+    def test_lab3_post_keeps_simulator_workspace(self):
+        text = self.client.post("/calculate", data={
+            "circuit": "divider", "vcc": "12", "r1": "100000",
+            "r2": "22000", "rc": "2200", "re": "1000",
+            "beta": "100", "vbe": "0.70",
+        }).get_data(as_text=True)
+        self.assertIn("DC Bias Results", text)
+        self.assertIn("Run Simulation", text)
+
+    def test_simulator_post_keeps_lab3_workspace(self):
+        with patch.object(flask_app.spice_engine, "run_simulation", return_value=DC_RESULT):
+            text = self.client.post("/simulator/run", data={"mode": "dc"}).get_data(as_text=True)
+        self.assertIn("SUCCESS", text)
+        self.assertIn("Calculate DC Bias", text)
+
     def test_running_status_element_and_script(self):
         text = self.client.get("/simulator").get_data(as_text=True)
         self.assertIn('id="run-status"', text)
         self.assertIn("static/app.js", text)
         with self.client.get("/static/app.js") as script_response:
             self.assertIn("RUNNING", script_response.get_data(as_text=True))
+
+    def test_running_script_only_targets_simulator_forms(self):
+        with self.client.get("/static/app.js") as script_response:
+            script = script_response.get_data(as_text=True)
+        self.assertIn("form[action='/simulator/run']", script)
 
     def test_invalid_re_shows_error_without_success(self):
         response = self.client.post("/simulator/run", data={"mode": "dc", "re": "0"})

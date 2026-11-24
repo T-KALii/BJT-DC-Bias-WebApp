@@ -1,10 +1,12 @@
 # BJT DC Bias Web App + CE Amplifier Simulator — Lab 03 / Lab 04
 
-เว็บแอป Flask ที่คำนวณ **DC Operating Point** ของ BJT NPN Common-Emitter ได้ 3 แบบในหน้าเดียว
+เว็บแอป Flask ที่รวม **Lab 03 (DC Bias Calculator)** และ **Lab 04 (CE Amplifier Simulator)**
+ไว้ใน **หน้าเดียวกัน** ที่ `/` — ส่งฟอร์มฝั่งใดฝั่งหนึ่งแล้วอีกฝั่งยังอยู่ครบ
 ต่อยอดจาก Lab 02 (Voltage Divider Bias) โดยผลของโหมดเดิมยังเหมือนเดิมทุกประการ
 
-Lab 04 เพิ่มหน้า `/simulator` ที่เรียก **ngspice จริง** สำหรับ `.op`, `.ac` และ `.tran`
-ของวงจร CE voltage-divider อ้างอิง โดยผล SPICE แยกป้ายออกจากผล Analytical Lab 03 อย่างชัดเจน
+Lab 04 เรียก **ngspice จริง** สำหรับ `.op`, `.ac` และ `.tran` ของวงจร CE voltage-divider อ้างอิง
+โดยผล SPICE แยกป้ายออกจากผล Analytical Lab 03 อย่างชัดเจน
+`/simulator` ยังเปิดได้เหมือนเดิม แต่ตอนนี้แสดงหน้ารวมเดียวกัน (ทางลัดสำหรับ bookmark เก่า)
 
 วิชา ENG29 2121 · Lab 03 (Forward-Active β/VBE คงที่) · Lab 04 (ngspice 47)
 
@@ -25,16 +27,19 @@ Lab 04 เพิ่มหน้า `/simulator` ที่เรียก **ngspi
 ## โครงสร้างไฟล์
 
 ```
-app.py                  Flask routes: /calculate และ /simulator, /simulator/run
+app.py                  Flask routes: /, /calculate, /simulator, /simulator/run (render หน้ารวม)
 dc_bias.py              สมการ Lab 03 ล้วน: calculate(), calculate_fixed(), calculate_emitter()
 spice_engine.py         Lab 04: สร้าง netlist, เรียก ngspice, parse log, จัดการ error
 charts.py               Lab 04: วาด SVG Bode/waveform จาก array ที่ parse จริง (ไม่มี dependency เพิ่ม)
-templates/index.html    หน้า Lab 03 + ลิงก์ไป /simulator
-templates/simulator.html หน้า Lab 04: mode, inputs, status, ผล SPICE/Analytical, netlist/log
-static/app.js           เปลี่ยน status เป็น RUNNING ขณะรอ ngspice (ไม่สร้างตัวเลขผลลัพธ์)
-static/style.css        หน้าตาเว็บและกราฟ
-tests/                  44 tests (Lab 03 เดิม 22 + Lab 04 ใหม่ 22)
-docs/validation.md      ตาราง A1–A5 (Lab 03) + B1–B8 (Lab 04) + ค่าอ้างอิง/หลักฐาน Browser
+templates/combined.html หน้ารวม: ส่วน Lab 03 + ส่วน Lab 04 + nav ข้ามส่วน
+templates/_lab3.html    ส่วนฟอร์ม/ผล Lab 03 (include โดย combined.html)
+templates/_lab4.html    ส่วนฟอร์ม/status/ผล Lab 04 (include โดย combined.html)
+templates/index.html    include combined.html (route /)
+templates/simulator.html include combined.html (route /simulator ทางลัดเดิม)
+static/app.js           เปลี่ยน status เป็น RUNNING เฉพาะฟอร์ม /simulator/run (ไม่สร้างตัวเลขผลลัพธ์)
+static/style.css        หน้าตาเว็บ กราฟ และเลย์เอาต์หน้ารวม
+tests/                  49 tests (Lab 03 เดิม 22 + Lab 04 ใหม่ 27)
+docs/validation.md      ตาราง A1–A5, B1–B8 และ C1 (หน้ารวม) + ค่าอ้างอิง/หลักฐาน Browser
 docs/evidence/          ภาพหน้าจอผลการตรวจ
 requirements.txt        Flask (ไม่เพิ่ม plotting library)
 opencode.json           ตั้งค่า Playwright MCP (OpenCode V2)
@@ -73,15 +78,16 @@ $env:NGSPICE_EXECUTABLE = "C:\path\to\ngspice.exe"
 python -m flask --app app run --debug
 ```
 
-เปิด [http://127.0.0.1:5000/](http://127.0.0.1:5000/) สำหรับ Lab 03 หรือ
-[http://127.0.0.1:5000/simulator](http://127.0.0.1:5000/simulator) สำหรับ Lab 04
-แล้วเลือกโหมด กรอกค่า กดปุ่มคำนวณ/รัน
+เปิด [http://127.0.0.1:5000/](http://127.0.0.1:5000/) — เห็นทั้ง **Lab 03** และ **Lab 04** ในหน้าเดียว
+เลื่อนลงไปส่วนที่ต้องการ แล้วเลือกโหมด กรอกค่า กด **Calculate DC Bias** หรือ **Run Simulation**
+[http://127.0.0.1:5000/simulator](http://127.0.0.1:5000/simulator) เป็นทางลัดไปหน้าเดียวกัน (bookmark เก่ายังใช้ได้)
 
 > **ลิงก์เปิดไม่ได้?** `127.0.0.1` หมายถึงเครื่องที่รัน Flask จึงต้องเปิดคำสั่ง `python -m flask --app app run --debug` ค้างไว้ก่อนกดลิงก์ ถ้าปิด Terminal หรือกดจากอีกเครื่องจะขึ้น *site can't be reached* ดูวิธีแก้ที่หัวข้อ **แก้ปัญหาลิงก์เปิดไม่ได้** ด้านล่างครับ
 
 ## Lab 04 · CE Amplifier Simulator
 
-เปิด `/simulator` เลือก `DC · .op`, `AC · .ac` หรือ `Transient · .tran` แล้วกด **Run Simulation**
+ในหน้ารวม เลื่อนถึงส่วน **CE Amplifier Simulator** แล้วเลือก `DC · .op`, `AC · .ac` หรือ `Transient · .tran`
+กด **Run Simulation** (หรือเปิด `/simulator` แล้วเลื่อนมาที่ส่วนเดียวกันก็ได้)
 ทุกโหมดใช้วงจรอ้างอิงเดียวกัน (voltage-divider CE) และส่ง netlist จริงให้ ngspice 47
 
 | ช่อง | หน่วยที่กรอก |
@@ -105,6 +111,8 @@ AC sweep `100 Hz–1 MHz` (5 pts/decade), transient `2 ms` step `1 µs`
   → **แบบจำลองที่กำหนดเองในโปรเจกต์ ไม่ใช่ model card จากอาจารย์** ห้ามตีความว่าเป็นค่ามาตรฐานที่ตรวจแล้ว
 - `<details>` **Netlist และ ngspice log** ของรันนั้น ๆ เปิดดูได้ในหน้าผลลัพธ์
 - กราฟ Bode/wave เป็น SVG ที่สร้างจากตาราง `.PRINT AC` / `.PRINT TRAN` ที่ parse ได้ จึงไม่ใช่ mock plot
+- **หน้ารวม**: กด **Calculate DC Bias** แล้วส่วน Lab 04 ยังอยู่; กด **Run Simulation** แล้วฟอร์ม Lab 03 ยังอยู่
+  (แต่ละ POST อัปเดตเฉพาะฝั่งตัวเอง ไม่ได้ซ่อนอีกฝั่งทิ้ง) — ดู C1 ใน validation
 
 ### ตัวอย่างค่าที่ใช้ตรวจ (VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V)
 
@@ -125,8 +133,8 @@ AC sweep `100 Hz–1 MHz` (5 pts/decade), transient `2 ms` step `1 µs`
 py -m unittest discover -s tests -v
 ```
 
-ต้องได้ `OK 44 tests` = Lab 03 เดิม 22 (unit 10 + web 12) + Lab 04 ใหม่ 22
-(netlist/parser/error/route/chart) ชุดทดสอบ Lab 03 เดิมยังผ่านเหมือนเดิม
+ต้องได้ `OK 49 tests` = Lab 03 เดิม 22 (unit 10 + web 12) + Lab 04 ใหม่ 27
+(netlist/parser/error/route/chart + 5 tests สำหรับหน้ารวม) ชุดทดสอบ Lab 03 เดิมยังผ่านเหมือนเดิม
 
 ## การตรวจผ่าน Browser / MCP
 

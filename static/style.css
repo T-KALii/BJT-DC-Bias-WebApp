@@ -47,6 +47,38 @@ body {
   font-size: 14px;
 }
 
+.combined-page { max-width: 980px; }
+
+.combined-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin-top: 12px;
+}
+
+.combined-nav a {
+  color: var(--blue);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.combined-nav a:hover { text-decoration: underline; }
+
+.workspace-section {
+  margin-top: 34px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.section-head { margin-bottom: 6px; }
+
+.section-head h2 {
+  margin: 4px 0;
+  color: var(--navy);
+  font-size: 1.35rem;
+}
+
 .card {
   background: #fff;
   border: 1px solid var(--line);

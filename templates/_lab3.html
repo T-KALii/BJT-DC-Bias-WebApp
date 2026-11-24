@@ -1,0 +1,68 @@
+<form class="mode-bar lab3-mode-bar" method="get" action="/">
+  <label for="lab3-circuit">เลือกวงจร</label>
+  <select id="lab3-circuit" name="circuit">
+    <option value="divider" {% if lab3_circuit == 'divider' %}selected{% endif %}>Voltage Divider Bias</option>
+    <option value="fixed" {% if lab3_circuit == 'fixed' %}selected{% endif %}>Fixed Bias</option>
+    <option value="emitter" {% if lab3_circuit == 'emitter' %}selected{% endif %}>Emitter Bias</option>
+  </select>
+  <button type="submit">เปลี่ยนวงจร</button>
+</form>
+
+{% if lab3_error %}
+<div class="error" role="alert">{{ lab3_error }}</div>
+{% endif %}
+
+<form class="card" method="post" action="/calculate">
+  <input type="hidden" name="circuit" value="{{ lab3_circuit }}">
+  <p class="form-hint">กรอกความต้านทานเป็น Ω และแรงดันเป็น V</p>
+  <div class="grid">
+    {% for field in lab3_fields %}
+    <label>{{ lab3_field_info[field][0] }}
+      <input type="text" inputmode="decimal" name="{{ field }}" value="{{ lab3_values.get(field, '') }}" placeholder="{{ lab3_field_info[field][1] }}">
+    </label>
+    {% endfor %}
+  </div>
+  <button type="submit">Calculate DC Bias</button>
+</form>
+
+{% if lab3_result %}
+<section class="card results">
+  <div class="results-head">
+    <h2>DC Bias Results — {{ lab3_mode_label }}</h2>
+    <span class="badge region-{{ lab3_result.region }}">{{ lab3_result.region|capitalize }} Region</span>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>ปริมาณ</th><th>ค่า</th><th>หน่วย</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VB</td><td>{{ lab3_display.vb }}</td><td>V</td></tr>
+        <tr><td>VE</td><td>{{ lab3_display.ve }}</td><td>V</td></tr>
+        <tr><td>VC</td><td>{{ lab3_display.vc }}</td><td>V</td></tr>
+        <tr><td>VCE</td><td>{{ lab3_display.vce }}</td><td>V</td></tr>
+        <tr><td>IC</td><td>{{ lab3_display.ic }}</td><td>mA</td></tr>
+        <tr><td>IB</td><td>{{ lab3_display.ib }}</td><td>µA</td></tr>
+        <tr><td>IE</td><td>{{ lab3_display.ie }}</td><td>mA</td></tr>
+      </tbody>
+    </table>
+  </div>
+  {% if lab3_show_divider_meta %}
+  <p class="meta">
+    VTH = {{ lab3_display.vth }} V · RTH = {{ lab3_display.rth }} kΩ ·
+    แบบจำลอง Forward-Active (β, VBE คงที่)
+  </p>
+  {% else %}
+  <p class="meta">
+    {{ lab3_mode_label }} · หน่วย: V, mA, µA · แบบจำลอง Forward-Active (β, VBE คงที่)
+  </p>
+  {% endif %}
+  {% if lab3_result.warnings %}
+  <div class="warn" role="status">
+    {% for warning in lab3_result.warnings %}
+    <p>{{ warning }}</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}

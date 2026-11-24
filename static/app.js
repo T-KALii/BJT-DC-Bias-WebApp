@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var status = document.getElementById("run-status");
   if (!status) return;
 
-  document.querySelectorAll("form").forEach(function (form) {
+  document.querySelectorAll("form[action='/simulator/run']").forEach(function (form) {
     form.addEventListener("submit", function () {
       status.textContent = "RUNNING · ngspice";
       status.className = "sim-status status-running";

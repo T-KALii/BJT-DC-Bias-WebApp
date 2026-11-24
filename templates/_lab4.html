@@ -1,0 +1,132 @@
+<form class="mode-bar sim-mode-bar" method="post" action="/simulator/run">
+  <label for="sim-mode">Analysis Mode</label>
+  <select id="sim-mode" name="mode">
+    {% for key in sim_modes %}
+    <option value="{{ key }}" {% if sim_mode == key %}selected{% endif %}>{{ sim_mode_labels[key] }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">เปลี่ยนโหมด / รันตามโหมดที่เลือก</button>
+</form>
+
+<p class="sim-status" id="run-status">
+  {% if sim_error %}ERROR · ngspice{% elif sim_result %}SUCCESS · {{ sim_result.engine }} {{ sim_result.version }}{% else %}READY · ngspice {{ sim_engine_version }}{% endif %}
+</p>
+
+{% if sim_error %}
+<div class="error" role="alert">
+  <strong>การจำลองไม่สำเร็จ</strong>
+  <p>{{ sim_error }}</p>
+  <p class="meta">ไม่มีผลเก่าหรือกราฟเก่าที่แสดงเป็น Success ในรอบนี้</p>
+</div>
+{% endif %}
+
+<form class="card sim-form" method="post" action="/simulator/run">
+  <input type="hidden" name="mode" value="{{ sim_mode }}">
+  <fieldset>
+    <legend>วงจร CE Voltage Divider · หน่วย V / Ω / µF</legend>
+    <div class="grid">
+      <label>VCC (V)<input type="text" inputmode="decimal" name="vcc" value="{{ sim_values.vcc }}"></label>
+      <label>R1 (Ω)<input type="text" inputmode="decimal" name="r1" value="{{ sim_values.r1 }}"></label>
+      <label>R2 (Ω)<input type="text" inputmode="decimal" name="r2" value="{{ sim_values.r2 }}"></label>
+      <label>RC (Ω)<input type="text" inputmode="decimal" name="rc" value="{{ sim_values.rc }}"></label>
+      <label>RE (Ω)<input type="text" inputmode="decimal" name="re" value="{{ sim_values.re }}"></label>
+      <label>RL (Ω)<input type="text" inputmode="decimal" name="rl" value="{{ sim_values.rl }}"></label>
+      <label>Cin (µF)<input type="text" inputmode="decimal" name="cin" value="{{ sim_values.cin }}"></label>
+      <label>Cout (µF)<input type="text" inputmode="decimal" name="cout" value="{{ sim_values.cout }}"></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>แหล่งสัญญาณ · หน่วย mV / kHz / ms / µs</legend>
+    <div class="grid">
+      <label>Amplitude peak (mV)<input type="text" inputmode="decimal" name="amp" value="{{ sim_values.amp }}"></label>
+      <label>Frequency (kHz)<input type="text" inputmode="decimal" name="freq" value="{{ sim_values.freq }}"></label>
+      {% if sim_mode == 'ac' %}
+      <label>Frequency start (Hz)<input type="text" inputmode="decimal" name="fstart" value="{{ sim_values.fstart }}"></label>
+      <label>Frequency stop (Hz)<input type="text" inputmode="decimal" name="fstop" value="{{ sim_values.fstop }}"></label>
+      {% endif %}
+      {% if sim_mode == 'transient' %}
+      <label>Stop time (ms)<input type="text" inputmode="decimal" name="tstop" value="{{ sim_values.tstop }}"></label>
+      <label>Time step (µs)<input type="text" inputmode="decimal" name="tstep" value="{{ sim_values.tstep }}"></label>
+      {% endif %}
+    </div>
+    <p class="form-hint">Base case: VCC 12 V · R1 100 kΩ · R2 22 kΩ · RC 2.2 kΩ · RE 1 kΩ · RL 10 kΩ · Cin/Cout 10 µF · 10 mV peak · 1 kHz</p>
+  </fieldset>
+
+  <button type="submit">Run Simulation ({{ sim_mode_labels[sim_mode] }})</button>
+</form>
+
+{% if sim_result %}
+<section class="card results">
+  <div class="results-head">
+    <h2>ผลการจำลอง — {{ sim_mode_labels[sim_mode] }}</h2>
+    <span class="status-ok">SUCCESS · {{ sim_result.engine }} {{ sim_result.version }}</span>
+  </div>
+  <p class="meta">BJT Model: <code>{{ sim_result.model }}</code> · ผลทั้งหมดอ่านจาก ngspice log ที่รันรอบนี้ (ไม่ใช่ค่าที่ hard-code)</p>
+
+  {% if sim_mode == 'dc' %}
+  <div class="two-col">
+    <div>
+      <h3>DC Operating Point <span class="tag-spice">SPICE</span></h3>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>ปริมาณ</th><th>ค่า</th><th>หน่วย</th></tr></thead>
+          <tbody>
+            <tr><td>VB</td><td>{{ '%.3f'|format(sim_result.vb) }}</td><td>V</td></tr>
+            <tr><td>VE</td><td>{{ '%.3f'|format(sim_result.ve) }}</td><td>V</td></tr>
+            <tr><td>VC</td><td>{{ '%.3f'|format(sim_result.vc) }}</td><td>V</td></tr>
+            <tr><td>VCE</td><td>{{ '%.3f'|format(sim_result.vce) }}</td><td>V</td></tr>
+            <tr><td>IC (จาก RC drop)</td><td>{{ '%.3f'|format(sim_result.ic_ma) }}</td><td>mA</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h3>Analytical Reference <span class="tag-analytical">LAB 03</span></h3>
+      {% if sim_analytical %}
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>ปริมาณ</th><th>ค่า</th><th>หน่วย</th></tr></thead>
+          <tbody>
+            <tr><td>VB</td><td>{{ '%.3f'|format(sim_analytical.vb) }}</td><td>V</td></tr>
+            <tr><td>VE</td><td>{{ '%.3f'|format(sim_analytical.ve) }}</td><td>V</td></tr>
+            <tr><td>VC</td><td>{{ '%.3f'|format(sim_analytical.vc) }}</td><td>V</td></tr>
+            <tr><td>VCE</td><td>{{ '%.3f'|format(sim_analytical.vce) }}</td><td>V</td></tr>
+            <tr><td>IC</td><td>{{ '%.3f'|format(sim_analytical.ic * 1000) }}</td><td>mA</td></tr>
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="meta">ไม่สามารถคำนวณค่าอ้างอิงได้จากชุดค่าที่กรอก</p>
+      {% endif %}
+    </div>
+  </div>
+  <p class="meta">แบบจำลอง Analytical ใช้ β=100, VBE=0.70 V คงที่ ส่วน SPICE ใช้ BJT model ข้างต้น จึงไม่บังคับให้ตัวเลขเท่ากันทุกหลัก</p>
+
+  {% elif sim_mode == 'ac' %}
+  <h3>Bode Response <span class="tag-spice">SPICE · .ac</span></h3>
+  <div class="plot-wrap">{{ sim_bode_svg|safe }}</div>
+  <p class="meta">
+    Gain {{ '%.2f'|format(sim_summary.gain_min) }} … {{ '%.2f'|format(sim_summary.gain_max) }} dB ·
+    Phase {{ '%.1f'|format(sim_summary.phase_min) }} … {{ '%.1f'|format(sim_summary.phase_max) }} ° ·
+    ที่ ~1 kHz: {{ '%.2f'|format(sim_summary.at_1k.gain_db) }} dB / {{ '%.1f'|format(sim_summary.at_1k.phase_deg) }} °
+  </p>
+  <p class="meta">แกน: Frequency (Hz, log) · Gain (dB) · Phase (°) · อ้างอิง Gain = VDB(VOUT) − VDB(VIN)</p>
+
+  {% else %}
+  <h3>Transient Waveform <span class="tag-spice">SPICE · .tran</span></h3>
+  <div class="plot-wrap">{{ sim_wave_svg|safe }}</div>
+  <p class="meta">
+    Vin {{ '%.2f'|format(sim_summary.vin_pp * 1000) }} mVpp ·
+    Vout {{ '%.2f'|format(sim_summary.vout_pp * 1000) }} mVpp · {{ sim_summary.phase_note }}
+  </p>
+  <p class="meta">แกน: Time (ms) · Vin/Vout (V) · สีเขียว = Vin, สีส้ม = Vout</p>
+  {% endif %}
+
+  <details>
+    <summary>ดู Netlist และ ngspice log ที่ใช้รันรอบนี้</summary>
+    <h4>Netlist</h4><pre>{{ sim_result.netlist }}</pre>
+    <h4>Log excerpt</h4><pre>{{ sim_result.log_excerpt }}</pre>
+  </details>
+</section>
+{% endif %}

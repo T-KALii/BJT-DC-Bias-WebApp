@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ENG29 2121 · BJT Lab Workspace — DC Bias + CE Simulator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <main class="page combined-page">
+    <header class="head">
+      <p class="eyebrow">ENG29 2121 · Lab 03 + Lab 04 · Integrated Workspace</p>
+      <h1>BJT DC Bias + CE Amplifier Simulator</h1>
+      <p class="sub">คำนวณไบอัสแบบ Forward-Active และจำลองจริงด้วย <strong>ngspice</strong> ในหน้าเดียวกัน</p>
+      <nav class="combined-nav" aria-label="เลือกส่วนที่ต้องการ">
+        <a href="#lab3">Lab 03 · DC Bias Calculator</a>
+        <a href="#lab4">Lab 04 · ngspice CE Simulator</a>
+        <a href="/simulator">/simulator (ทางลัดเดิม)</a>
+      </nav>
+    </header>
+
+    <section id="lab3" class="workspace-section">
+      <div class="section-head">
+        <p class="eyebrow">01 / LAB 03 · FORWARD-ACTIVE APPROXIMATION</p>
+        <h2>DC Bias Calculator</h2>
+        <p class="sub">Voltage Divider · Fixed · Emitter — ผล analytical เดิมทั้ง 3 แบบ</p>
+      </div>
+      {% include '_lab3.html' %}
+    </section>
+
+    <section id="lab4" class="workspace-section">
+      <div class="section-head">
+        <p class="eyebrow">02 / LAB 04 · NGSPICE 47</p>
+        <h2>CE Amplifier Simulator</h2>
+        <p class="sub">ผลจริงจาก <code>.op</code>, <code>.ac</code> และ <code>.tran</code> แยกป้ายออกจากค่าอ้างอิง Lab 03</p>
+      </div>
+      {% include '_lab4.html' %}
+    </section>
+  </main>
+</body>
+</html>

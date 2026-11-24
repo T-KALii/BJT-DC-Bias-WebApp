@@ -163,7 +163,7 @@ VTH = 2.164 V, RTH = 18.03 kΩ — ตรงกับ README/validation ขอ�
 
 `B1-divider.jpg`, `B1-fixed.jpg`, `B1-emitter.jpg`, `B2-dc.jpg`, `B3-re1500.jpg`,
 `B4-ac.jpg`, `B5-tran.jpg`, `B6-source-changed.jpg`, `B7-invalid.jpg`,
-`B8-desktop.jpg`, `B8-mobile-390.jpg` อยู่ใน [`docs/evidence/`](evidence/)
+`B8-desktop.jpg`, `B8-mobile-390.jpg`, `C1-combined-desktop.jpg` อยู่ใน [`docs/evidence/`](evidence/)
 
 ## สิ่งที่ AI เขียน/แก้ และสิ่งที่ตรวจเอง
 
@@ -174,4 +174,31 @@ VTH = 2.164 V, RTH = 18.03 kΩ — ตรงกับ README/validation ขอ�
 - นักศึกษาตรวจเอง: ค่า Lab 03 เทียบสูตรในหัวข้อ A1–A4, netlist ที่ส่งจริง, model card ที่ไม่ใช่ของอาจารย์,
   ความกลับเฟสใน waveform, การเปลี่ยนแปลงเมื่อเปลี่ยน RE/amplitude/frequency,
   และว่า error path ไม่โชว์ SUCCESS ปลอม
-- ผลทดสอบสุดท้าย: `py -m unittest discover -s tests` → **OK 44 tests** (Lab 03 เดิม 22 + Lab 04 ใหม่ 22)
+---
+
+## C1 · ตรวจการรวมหน้า Lab 03 + Lab 04 (หลัง B1–B8)
+
+ตามที่ผู้ใช้ขอให้ **"อยู่รวมกัน"** ทางหน้าเว็บ: ทั้งสอง workspace อยู่ในหน้าเดียวที่ `/`
+และ `/simulator` ยังเปิดเหมือนเดิม (ตอนนี้ render หน้ารวมเดียวกัน)
+
+| รายการ | วิธีตรวจ (OpenCode Browser) | ผลที่เห็นจริง | สถานะ |
+|--------|----------------------------|---------------|--------|
+| หน้ารวมมี 2 ส่วน | เปิด `http://127.0.0.1:5000/` แล้ว snapshot/DOM | พบ `id="lab3"` และ `id="lab4"` พร้อมกัน; nav ข้ามส่วน 3 ลิงก์; console error `0` | **PASS** |
+| POST Lab 03 แล้วไม่เสีย Lab 04 | กรอก Divider `12, 100000, 22000, 2200, 1000, 100, 0.7` → กด **Calculate DC Bias** | URL `/calculate`; `DC Bias Results — Voltage Divider Bias`, `VCE 8.05 V`;  ยังพบ `id="lab4"`, `form[action='/simulator/run']`, status `READY · ngspice 47` | **PASS** |
+| POST Lab 04 แล้วไม่เสีย Lab 03 | ในหน้าเดียวกันส่งฟอร์ม DC `.op` (base case) | URL `/simulator/run`; `SUCCESS · ngspice 47`; ตาราง `DC Operating Point / SPICE` คู่กับ `Analytical Reference / LAB 03`, `VCE 7.900 V`; ยังพบ `id="lab3"` และ `form[action='/calculate']` | **PASS** |
+| Status ไม่หลุดไป Lab 03 | อ่าน `static/app.js` และ DOM หลัง POST | script ฟังเฉพาะ `form[action='/simulator/run']`; กด Calculate DC Bias ไม่เปลี่ยน status เป็น `RUNNING` | **PASS** |
+
+หลักฐานภาพ: [`C1-combined-desktop.jpg`](evidence/C1-combined-desktop.jpg) (full-page หลังรัน DC จริง)
+วิธีตรวจเหมือน B1–B8 คือ OpenCode Browser **ไม่ใช่ Playwright MCP** (ยัง **NOT RUN** เพราะไม่มี `node`/`npx`)
+และ **Impeccable: NOT RUN** ตามที่ผู้ใช้เลือก
+
+### สิ่งที่ AI แก้สำหรับ C1 (TDD)
+
+- เขียน failing test 4 ตัวใน `tests/test_simulator_routes.py` ก่อน: หน้า `/` ต้องมีสอง workspace,
+  `/simulator` ต้องมีสอง workspace, POST `/calculate` ต้องยังมีปุ่ม Run, POST `/simulator/run` ต้องยังมีปุ่ม Calculate
+  → รันแล้วล้มจริง (`id="lab3"` ไม่พบ) ก่อนแก้
+- เพิ่ม test ที่ 5 ให้ JS ฟังเฉพาะฟอร์ม `/simulator/run` → ล้มจริงก่อนแก้ `static/app.js`
+- แยก template เป็น `combined.html` + `_lab3.html` + `_lab4.html`; `index.html` และ `simulator.html` เป็นแค่ include
+- `app.py` ใช้ `_lab3_context()` / `_sim_context()` แล้วรวม context ด้วย prefix `lab3_` / `sim_`
+  แล้ว `_render_combined()` ส่งให้ template — ไม่ย้ายสมการหรือ hardcode ตัวเลขเพิ่ม
+- ผลทดสอบสุดท้าย: `py -m unittest discover -s tests` → **OK 49 tests** (Lab 03 เดิม 22 + Lab 04 เดิม 22 + C1 อีก 5)

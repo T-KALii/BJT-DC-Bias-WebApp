@@ -82,39 +82,39 @@ def _display(result):
     return display
 
 
-def _render(error=None, values=None, result=None, circuit=DEFAULT_CIRCUIT):
-    return render_template(
-        "index.html",
-        circuit=circuit,
-        mode_label=CIRCUIT_LABELS[circuit],
-        fields=CIRCUIT_FIELDS[circuit],
-        field_info=FIELD_INFO,
-        result=result,
-        error=error,
-        values=values or {},
-        display=_display(result) if result is not None else None,
-        show_divider_meta=(
+def _lab3_context(error=None, values=None, result=None, circuit=DEFAULT_CIRCUIT):
+    """Context for the Lab 03 section of the combined page."""
+    return {
+        "circuit": circuit,
+        "mode_label": CIRCUIT_LABELS[circuit],
+        "fields": CIRCUIT_FIELDS[circuit],
+        "field_info": FIELD_INFO,
+        "result": result,
+        "error": error,
+        "values": values or {},
+        "display": _display(result) if result is not None else None,
+        "show_divider_meta": (
             circuit == "divider" and result is not None and result["vth"] is not None
         ),
-    )
+    }
 
 
 @app.get("/")
 def index():
     requested = request.args.get("circuit", DEFAULT_CIRCUIT)
     circuit = requested if requested in CIRCUIT_LABELS else DEFAULT_CIRCUIT
-    return _render(circuit=circuit)
+    return _render_combined(lab3={"circuit": circuit})
 
 
 @app.post("/calculate")
 def calculate_view():
     requested = request.form.get("circuit", DEFAULT_CIRCUIT)
     if requested not in CIRCUIT_LABELS:
-        return _render(
-            circuit=DEFAULT_CIRCUIT,
-            error="โหมดวงจรไม่รู้จัก กรุณาเลือก Voltage Divider, Fixed หรือ Emitter Bias",
-            values={"circuit": requested},
-        )
+        return _render_combined(lab3={
+            "circuit": DEFAULT_CIRCUIT,
+            "error": "โหมดวงจรไม่รู้จัก กรุณาเลือก Voltage Divider, Fixed หรือ Emitter Bias",
+            "values": {"circuit": requested},
+        })
 
     circuit = requested
     label = CIRCUIT_LABELS[circuit]
@@ -124,34 +124,36 @@ def calculate_view():
 
     if any(not values[name].strip() for name in fields):
         names = ", ".join(FIELD_INFO[name][0].split(" (")[0] for name in fields)
-        return _render(
-            circuit=circuit,
-            values=values,
-            error=f"{label}: กรุณากรอกค่าให้ครบทุกช่อง ({names})",
-        )
+        return _render_combined(lab3={
+            "circuit": circuit,
+            "values": values,
+            "error": f"{label}: กรุณากรอกค่าให้ครบทุกช่อง ({names})",
+        })
 
     try:
         parsed = {name: float(values[name]) for name in fields}
     except ValueError:
-        return _render(
-            circuit=circuit,
-            values=values,
-            error=f"{label}: กรุณากรอกเป็นตัวเลขเท่านั้น (เช่น 12 หรือ 100000)",
-        )
+        return _render_combined(lab3={
+            "circuit": circuit,
+            "values": values,
+            "error": f"{label}: กรุณากรอกเป็นตัวเลขเท่านั้น (เช่น 12 หรือ 100000)",
+        })
 
     if not all(math.isfinite(value) for value in parsed.values()):
-        return _render(
-            circuit=circuit,
-            values=values,
-            error=f"{label}: กรุณากรอกตัวเลขที่อยู่ในช่วงที่คำนวณได้ (เช่น 12 หรือ 100000)",
-        )
+        return _render_combined(lab3={
+            "circuit": circuit,
+            "values": values,
+            "error": f"{label}: กรุณากรอกตัวเลขที่อยู่ในช่วงที่คำนวณได้ (เช่น 12 หรือ 100000)",
+        })
 
     try:
         result = _calculate(circuit, parsed)
     except ValueError as exc:
-        return _render(circuit=circuit, values=values, error=f"{label}: {exc}")
+        return _render_combined(lab3={
+            "circuit": circuit, "values": values, "error": f"{label}: {exc}",
+        })
 
-    return _render(circuit=circuit, values=values, result=result)
+    return _render_combined(lab3={"circuit": circuit, "values": values, "result": result})
 
 
 def _analytical_reference(values):
@@ -202,30 +204,43 @@ def _sim_summary(result, mode):
     return {}
 
 
-def _render_simulator(values=None, mode="dc", error=None, result=None):
+def _sim_context(values=None, mode="dc", error=None, result=None):
+    """Context for the Lab 04 section of the combined page."""
     values = {**SIM_DEFAULT, **(values or {})}
     if mode not in SIM_MODES:
         mode = "dc"
-    return render_template(
-        "simulator.html",
-        defaults=SIM_DEFAULT,
-        values=values,
-        mode=mode,
-        modes=SIM_MODES,
-        mode_labels=SIM_MODE_LABELS,
-        error=error,
-        result=result,
-        engine_version=spice_engine.NGSPICE_VERSION,
-        summary=_sim_summary(result, mode),
-        analytical=_analytical_reference(values) if mode == "dc" else None,
-        bode_svg=charts.bode_svg(result["series"]) if result and mode == "ac" else "",
-        wave_svg=charts.waveform_svg(result["series"]) if result and mode == "transient" else "",
-    )
+    return {
+        "defaults": SIM_DEFAULT,
+        "values": values,
+        "mode": mode,
+        "modes": SIM_MODES,
+        "mode_labels": SIM_MODE_LABELS,
+        "error": error,
+        "result": result,
+        "engine_version": spice_engine.NGSPICE_VERSION,
+        "summary": _sim_summary(result, mode),
+        "analytical": _analytical_reference(values) if mode == "dc" else None,
+        "bode_svg": charts.bode_svg(result["series"]) if result and mode == "ac" else "",
+        "wave_svg": (
+            charts.waveform_svg(result["series"])
+            if result and mode == "transient" else ""
+        ),
+    }
+
+
+def _render_combined(lab3=None, sim=None):
+    """Render both workspaces in one page; each submission updates its own half."""
+    lab3_context = _lab3_context(**(lab3 or {}))
+    sim_context = _sim_context(**(sim or {}))
+    context = {f"lab3_{name}": value for name, value in lab3_context.items()}
+    context.update({f"sim_{name}": value for name, value in sim_context.items()})
+    return render_template("combined.html", **context)
 
 
 @app.get("/simulator")
 def simulator_form():
-    return _render_simulator()
+    # Old bookmark still works; it now shows both workspaces in one page.
+    return _render_combined()
 
 
 @app.post("/simulator/run")
@@ -236,8 +251,8 @@ def simulator_run():
         result = spice_engine.run_simulation(mode, values)
     except (ValueError, spice_engine.SpiceEngineError) as exc:
         # Never show a previous successful run together with an error.
-        return _render_simulator(values=values, mode=mode, error=str(exc))
-    return _render_simulator(values=values, mode=mode, result=result)
+        return _render_combined(sim={"values": values, "mode": mode, "error": str(exc)})
+    return _render_combined(sim={"values": values, "mode": mode, "result": result})
 
 
 if __name__ == "__main__":
