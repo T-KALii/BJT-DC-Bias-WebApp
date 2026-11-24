@@ -127,7 +127,7 @@ VTH = 2.164 V, RTH = 18.03 kΩ — ตรงกับ README/validation ขอ�
 | B5 · Transient | เปลี่ยนโหมดเป็น `transient` แล้ว POST ที่สัญญาณฐาน | `10 mV peak`, `1 kHz`, `Stop 2 ms`, `Step 1 µs`, `.TRAN` | เห็น Vin/Vout ตามเวลา มีป้าย Time (ms)/แรงดัน (V) และสัญญาณกลับเฟสตาม CE | `SUCCESS · ngspice 47`; chart `Vin -0.0100…0.0100 V`, `Vout -0.0175…0.0175 V`, `2.00 ms shown`, 2 polyline ~2008 points; ข้อความ `Vin 20.00 mVpp · Vout 35.00 mVpp · Vin ที่ +peak ตรงกับ Vout ด้านลบ → สัญญาณกลับเฟส`; netlist `SIN(0 0.01 1000)` และ `.TRAN 1e-06 0.002 0 1e-06` | [`B5-tran.jpg`](evidence/B5-tran.jpg) + aria-label/netlist จาก DOM | **PASS** |
 | B6 · Change Source | เปลี่ยน Amplitude `10 → 20 mV` และ Frequency `1 → 2 kHz` แล้ว POST ซ้ำ | `20 mV peak`, `2 kHz`; stop/step เท่าเดิม | waveform ต้องเปลี่ยนตามค่าที่ตั้ง ไม่ใช่กราฟคงที่ | `SUCCESS · ngspice 47`; netlist เปลี่ยนเป็น `SIN(0 0.02 2000)`; `Vin 40.00 mVpp · Vout 69.99 mVpp`; chart label เปลี่ยนเป็น `Vin -0.0200…0.0200 V`, `Vout -0.0350…0.0350 V` (ก่อนหน้า ±0.0100/±0.0175 V) | [`B5-tran.jpg`](evidence/B5-tran.jpg) เทียบ [`B6-source-changed.jpg`](evidence/B6-source-changed.jpg) | **PASS** |
 | B7 · Invalid / Fail | ใส่ `RE=0` แล้ว POST โหมด `transient` | `RE=0 Ω` | ต้องแจ้ง error, ไม่ค้าง, ไม่แสดง SUCCESS ปลอมหรือกราฟเก่า | status เปลี่ยนเป็น `ERROR · ngspice`; alert `การจำลองไม่สำเร็จ / RE: ต้องมากกว่า 0 / ไม่มีผลเก่าหรือกราฟเก่าที่แสดงเป็น Success ในรอบนี้`; ตรวจ DOM แล้ว `body.innerText.includes('SUCCESS') === false` และ `svg.plot.length === 0` | [`B7-invalid.jpg`](evidence/B7-invalid.jpg) + ค่า DOM ข้างต้น | **PASS** |
-| B8 · UI | เปิด AC result ใน desktop viewport และ iframe กว้าง 390 px แล้วสลับโหมด | Desktop `1296×886`; phone frame `390 px` | กราฟ/หน่วย/ปุ่มอ่านง่าย ไม่มีเนื้อหาสำคัญถูกตัด | Desktop: plot width `952 px`, `scrollWidth > innerWidth = false`, พบข้อความ `Frequency (Hz, log scale)` และ `Gain (dB)`; phone: plot width `318 px`, horizontal overflow `false`, status `SUCCESS · ngspice 47`, หน่วยและปุ่มยังอ่านได้ | [`B8-desktop.jpg`](evidence/B8-desktop.jpg), [`B8-mobile-390.jpg`](evidence/B8-mobile-390.jpg) | **PASS** |
+| B8 · UI (รันใหม่หลังรวมหน้า C1) | เปิด `/simulator` → เปลี่ยนโหมดเป็น `ac` → รันจริง → ตรวจ desktop `1296×886` และ iframe กว้าง `390 px` ของ **หน้ารวมเดียวกัน** | Desktop `1296×886`; phone frame `390 px` | กราฟ/หน่วย/ปุ่มอ่านง่าย ไม่มีเนื้อหาสำคัญถูกตัด และยังเห็นทั้งสอง workspace | Desktop: `scrollWidth 1281 ≤ innerWidth 1296` (ไม่ overflow), plot width `892 px`, aria-label `Bode plot: gain 4.86 to 4.86 dB, phase -3.1 to -3.1 degrees`, พบ `Frequency (Hz, log scale)`, `Gain (dB)`, `Phase (°)`, status `SUCCESS · ngspice 47`; phone: `scrollWidth 375 ≤ 390` (ไม่ overflow), plot width `303 px`, หน่วย/ปุ่ม/ผล AC อ่านได้, เห็น `id="lab3"`, `id="lab4"` และ nav 3 ลิงก์, status เดิม | [`B8-desktop.jpg`](evidence/B8-desktop.jpg) (1296×886), [`B8-mobile-390.jpg`](evidence/B8-mobile-390.jpg) (375×3697, ภาพทั้งหน้ารวมใน iframe 390 px) | **PASS** |
 
 ## หลักฐานว่ากราฟมาจาก ngspice จริง ไม่ใช่ Mock
 
@@ -164,6 +164,9 @@ VTH = 2.164 V, RTH = 18.03 kΩ — ตรงกับ README/validation ขอ�
 `B1-divider.jpg`, `B1-fixed.jpg`, `B1-emitter.jpg`, `B2-dc.jpg`, `B3-re1500.jpg`,
 `B4-ac.jpg`, `B5-tran.jpg`, `B6-source-changed.jpg`, `B7-invalid.jpg`,
 `B8-desktop.jpg`, `B8-mobile-390.jpg`, `C1-combined-desktop.jpg` อยู่ใน [`docs/evidence/`](evidence/)
+
+B8 ถูก **ถ่ายใหม่หลังรวมหน้า C1** (เดิมเป็นของหน้า `/simulator` แยก) เพื่อให้หลักฐานตรงกับโค้ดปัจจุบัน
+- desktop เป็น viewport จริง 1296×886 และ mobile เป็น iframe กว้าง 390 px ของหน้ารวมเดียวกัน
 
 ## สิ่งที่ AI เขียน/แก้ และสิ่งที่ตรวจเอง
 
