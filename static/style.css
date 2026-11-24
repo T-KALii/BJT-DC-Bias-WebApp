@@ -210,3 +210,104 @@ td:nth-child(2) {
   font-size: 14px;
 }
 
+/* Lab 4 simulator additions */
+.sim-page { max-width: 1040px; }
+
+.sim-form fieldset {
+  margin: 0 0 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.sim-form legend {
+  padding: 0 6px;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sim-status {
+  margin: 12px 0 0;
+  padding: 7px 12px;
+  border-left: 4px solid var(--blue);
+  border-radius: 0 6px 6px 0;
+  background: #eaf2f9;
+  color: #164668;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status-running {
+  border-left-color: var(--warn);
+  background: #fff4e9;
+  color: #7a3a1a;
+}
+
+.status-ok {
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: #e6f5f0;
+  color: #0d6b5c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tag-spice, .tag-analytical {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.tag-spice { background: #e6f5f0; color: #0d6b5c; }
+.tag-analytical { background: #eaf2f9; color: #1d638b; }
+
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.two-col h3 {
+  margin: 14px 0 0;
+  font-size: 15px;
+  color: var(--navy);
+}
+
+.plot-wrap {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.plot { display: block; width: 100%; height: auto; }
+
+.results details {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.results details h4 { margin: 14px 0 4px; color: var(--navy); }
+
+.results pre {
+  max-height: 240px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 6px;
+  background: #f4f8fb;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 560px) {
+  .page { padding: 20px 12px 44px; }
+  .results-head { align-items: flex-start; }
+  .two-col { grid-template-columns: 1fr; }
+}
+

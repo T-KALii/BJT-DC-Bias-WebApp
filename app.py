@@ -2,6 +2,8 @@ import math
 
 from flask import Flask, render_template, request
 
+import charts
+import spice_engine
 from dc_bias import calculate, calculate_emitter, calculate_fixed
 
 app = Flask(__name__)
@@ -31,6 +33,16 @@ CIRCUIT_FIELDS = {
     "fixed": ("vcc", "rb", "rc", "beta", "vbe"),
     "emitter": ("vcc", "rb", "rc", "re", "beta", "vbe"),
 }
+
+# Lab 4 fixture: course-friendly units shown in the simulator form.
+SIM_DEFAULT = {
+    "vcc": "12", "r1": "100000", "r2": "22000", "rc": "2200",
+    "re": "1000", "rl": "10000", "cin": "10", "cout": "10",
+    "amp": "10", "freq": "1", "fstart": "100", "fstop": "1000000",
+    "tstop": "2", "tstep": "1",
+}
+SIM_MODES = ("dc", "ac", "transient")
+SIM_MODE_LABELS = {"dc": "DC · .op", "ac": "AC · .ac", "transient": "Transient · .tran"}
 
 
 def _calculate(circuit, p):
@@ -140,6 +152,92 @@ def calculate_view():
         return _render(circuit=circuit, values=values, error=f"{label}: {exc}")
 
     return _render(circuit=circuit, values=values, result=result)
+
+
+def _analytical_reference(values):
+    """Lab 3 divider result, shown only as a labelled DC reference."""
+    try:
+        parsed = {name: float(values[name]) for name in ("vcc", "r1", "r2", "rc", "re")}
+        if not all(math.isfinite(item) for item in parsed.values()):
+            return None
+        if min(parsed.values()) <= 0:
+            return None
+        return calculate(
+            vcc=parsed["vcc"], r1=parsed["r1"], r2=parsed["r2"],
+            rc=parsed["rc"], re=parsed["re"], beta=100.0, vbe=0.70,
+        )
+    except (ValueError, KeyError, TypeError, ZeroDivisionError):
+        return None
+
+
+def _sim_summary(result, mode):
+    """Small derived labels so the template never computes physics."""
+    if not result or not result.get("series"):
+        return {}
+    series = result["series"]
+    if mode == "ac":
+        gains = [item["gain_db"] for item in series]
+        phases = [item["phase_deg"] for item in series]
+        closest = min(series, key=lambda item: abs(item["frequency_hz"] - 1000.0))
+        return {
+            "gain_min": min(gains), "gain_max": max(gains),
+            "phase_min": min(phases), "phase_max": max(phases),
+            "at_1k": closest,
+        }
+    if mode == "transient":
+        tail = series[int(len(series) * 0.4):] or series
+        vins = [item["vin_v"] for item in tail]
+        vouts = [item["vout_v"] for item in tail]
+        mean_out = sum(vouts) / len(vouts)
+        peak_index = max(range(len(vins)), key=lambda i: vins[i])
+        inverted = vouts[peak_index] < mean_out
+        return {
+            "vin_pp": max(vins) - min(vins),
+            "vout_pp": max(vouts) - min(vouts),
+            "phase_note": ("Vin ที่ +peak ตรงกับ Vout ด้านลบ → สัญญาณกลับเฟส"
+                           if inverted else
+                           "Vin ที่ +peak ตรงกับ Vout ด้านบวก → ไม่กลับเฟสในช่วงที่วัด"),
+            "samples": series[:8],
+        }
+    return {}
+
+
+def _render_simulator(values=None, mode="dc", error=None, result=None):
+    values = {**SIM_DEFAULT, **(values or {})}
+    if mode not in SIM_MODES:
+        mode = "dc"
+    return render_template(
+        "simulator.html",
+        defaults=SIM_DEFAULT,
+        values=values,
+        mode=mode,
+        modes=SIM_MODES,
+        mode_labels=SIM_MODE_LABELS,
+        error=error,
+        result=result,
+        engine_version=spice_engine.NGSPICE_VERSION,
+        summary=_sim_summary(result, mode),
+        analytical=_analytical_reference(values) if mode == "dc" else None,
+        bode_svg=charts.bode_svg(result["series"]) if result and mode == "ac" else "",
+        wave_svg=charts.waveform_svg(result["series"]) if result and mode == "transient" else "",
+    )
+
+
+@app.get("/simulator")
+def simulator_form():
+    return _render_simulator()
+
+
+@app.post("/simulator/run")
+def simulator_run():
+    mode = request.form.get("mode", "dc")
+    values = {name: request.form.get(name, SIM_DEFAULT[name]) for name in SIM_DEFAULT}
+    try:
+        result = spice_engine.run_simulation(mode, values)
+    except (ValueError, spice_engine.SpiceEngineError) as exc:
+        # Never show a previous successful run together with an error.
+        return _render_simulator(values=values, mode=mode, error=str(exc))
+    return _render_simulator(values=values, mode=mode, result=result)
 
 
 if __name__ == "__main__":
